@@ -66,6 +66,7 @@ public class AddressBook {
      * =========================================================================
      */
     private static final String MESSAGE_ADDED = "New person added: %1$s, Phone: %2$s, Email: %3$s";
+    private static final String MESSAGE_CHANGE = "change complete: %1$s, Phone: %2$s, Email: %3$s";
     private static final String MESSAGE_ADDRESSBOOK_CLEARED = "Address book has been cleared!";
     private static final String MESSAGE_COMMAND_HELP = "%1$s: %2$s";
     private static final String MESSAGE_COMMAND_HELP_PARAMETERS = "\tParameters: %1$s";
@@ -104,6 +105,21 @@ public class AddressBook {
                                                       + PERSON_DATA_PREFIX_PHONE + "PHONE_NUMBER "
                                                       + PERSON_DATA_PREFIX_EMAIL + "EMAIL";
     private static final String COMMAND_ADD_EXAMPLE = COMMAND_ADD_WORD + " John Doe p/98765432 e/johnd@gmail.com";
+
+    //newly added
+    private static final String COMMAND_CHANGE_PHONE_WORD = "changePhone";
+    private static final String COMMAND_CHANGE_PHONE_DESC = "change the phone number of a person";
+    private static final String COMMAND_CHANGE_PHONE_PARAMETER = "NAME "
+                                                        + PERSON_DATA_PREFIX_PHONE + "PHONE";
+    private static final String COMMAND_CHANGE_PHONE_EXAMPLE = COMMAND_CHANGE_PHONE_WORD + " John Doe p/123456";
+
+
+    private static final String COMMAND_CHANGE_EMAIL_WORD = "changeEmail";
+    private static final String COMMAND_CHANGE_EMAIL_DESC = "change the email of a person";
+    private static final String COMMAND_CHANGE_EMAIL_PARAMETER = "NAME "
+                                                        + PERSON_DATA_PREFIX_EMAIL + "EMAIL";
+    private static final String COMMAND_CHANGE_EMAIL_EXAMPLE = COMMAND_CHANGE_EMAIL_WORD + " John Doe e/johnd2@gmail.com";
+
 
     private static final String COMMAND_FIND_WORD = "find";
     private static final String COMMAND_FIND_DESC = "Finds all persons whose names contain any of the specified "
@@ -383,6 +399,10 @@ public class AddressBook {
             return getUsageInfoForAllCommands();
         case COMMAND_EXIT_WORD:
             executeExitProgramRequest();
+        case COMMAND_CHANGE_PHONE_WORD:
+            return executeChangePhone(commandArgs);
+        case COMMAND_CHANGE_EMAIL_WORD:
+            return executeChangeEmail(commandArgs);
         default:
             return getMessageForInvalidCommandInput(commandType, getUsageInfoForAllCommands());
         }
@@ -441,7 +461,10 @@ public class AddressBook {
         return String.format(MESSAGE_ADDED,
                 getNameFromPerson(addedPerson), getPhoneFromPerson(addedPerson), getEmailFromPerson(addedPerson));
     }
-
+    private static String getMessageForSuccessfulChangedPerson(String[] addedPerson) {
+        return String.format(MESSAGE_CHANGE,
+                getNameFromPerson(addedPerson), getPhoneFromPerson(addedPerson), getEmailFromPerson(addedPerson));
+    }
     /**
      * Finds and lists all persons in address book whose name contains any of the argument keywords.
      * Keyword matching is case sensitive.
@@ -456,6 +479,39 @@ public class AddressBook {
         return getMessageForPersonsDisplayedSummary(personsFound);
     }
 
+    private static String executeChangePhone(String commandArgs){
+        if(!isChangePhoneDataExtractableFrom(commandArgs)){
+            return "Invalid input form";
+        }
+        final String personToChangePhone = extractNameFromChangePhoneString(commandArgs);
+        final String phoneToChange = extractPhoneFromChangePhoneString(commandArgs);
+
+        for (int i = 0; i < ALL_PERSONS.size(); i++){
+            if (ALL_PERSONS.get(i)[0].equals(personToChangePhone)){
+                String[] changedInfo = {ALL_PERSONS.get(i)[0], phoneToChange, ALL_PERSONS.get(i)[2]};
+                ALL_PERSONS.set(i, changedInfo);
+                return getMessageForSuccessfulChangedPerson(changedInfo);
+            }
+        }
+        return "No such person";
+    }
+
+    private static String executeChangeEmail(String commandArgs){
+        if(!isChangeEmailExtractableFrom(commandArgs)){
+            return "Invalid input form";
+        }
+        final String personToChangeEmail = extractNameFromChangeEmailString(commandArgs);
+        final String emailToChange = extractEmailFromChangeEmailString(commandArgs);
+
+        for (int i = 0; i < ALL_PERSONS.size(); i++){
+            if (ALL_PERSONS.get(i)[0].equals(personToChangeEmail)){
+                String[] changedInfo = {ALL_PERSONS.get(i)[0], ALL_PERSONS.get(i)[1], emailToChange};
+                ALL_PERSONS.set(i, changedInfo);
+                return getMessageForSuccessfulChangedPerson(changedInfo);
+            }
+        }
+        return "No such person";
+    }
     /**
      * Constructs a feedback message to summarise an operation that displayed a listing of persons.
      *
@@ -929,6 +985,10 @@ public class AddressBook {
         return isPersonDataValid(decodedPerson) ? Optional.of(decodedPerson) : Optional.empty();
     }
 
+
+
+
+
     /**
      * Decodes persons from a list of string representations.
      *
@@ -963,6 +1023,22 @@ public class AddressBook {
                 && !splitArgs[2].isEmpty();
     }
 
+    private static boolean isChangePhoneDataExtractableFrom(String personData) {
+        final String matchAnyPersonDataPrefix = PERSON_DATA_PREFIX_PHONE;
+        final String[] splitArgs = personData.trim().split(matchAnyPersonDataPrefix);
+        return splitArgs.length == 2 // 2 arguments
+                && !splitArgs[0].isEmpty() // non-empty arguments
+                && !splitArgs[1].isEmpty();
+    }
+
+    private static boolean isChangeEmailExtractableFrom(String personData) {
+        final String matchAnyPersonDataPrefix = PERSON_DATA_PREFIX_EMAIL;
+        final String[] splitArgs = personData.trim().split(matchAnyPersonDataPrefix);
+        return splitArgs.length == 2 // 2 arguments
+                && !splitArgs[0].isEmpty() // non-empty arguments
+                && !splitArgs[1].isEmpty();
+    }
+
     /**
      * Extracts substring representing person name from person string representation
      *
@@ -975,6 +1051,52 @@ public class AddressBook {
         // name is leading substring up to first data prefix symbol
         int indexOfFirstPrefix = Math.min(indexOfEmailPrefix, indexOfPhonePrefix);
         return encoded.substring(0, indexOfFirstPrefix).trim();
+    }
+
+    /**
+     * Extracts substring representing person name from change phone number string representation
+     *
+     * @param encoded change phone string representation
+     * @return name argument
+     */
+    private static String extractNameFromChangePhoneString(String encoded){
+        final int indexOfPhonePrefix = encoded.indexOf(PERSON_DATA_PREFIX_PHONE);
+        return encoded.substring(0, indexOfPhonePrefix).trim();
+    }
+
+    /**
+     * Extracts substring representing person name from change email string representation
+     *
+     * @param encoded change email string representation
+     * @return name argument
+     */
+    private static String extractNameFromChangeEmailString(String encoded){
+        final int indexOfEmailPrefix = encoded.indexOf(PERSON_DATA_PREFIX_EMAIL);
+        return encoded.substring(0, indexOfEmailPrefix).trim();
+    }
+
+    /**
+     * Extracts substring representing phone number from change phone number string representation
+     *
+     * @param encoded change phone number string representation
+     * @return phone number argument WITHOUT prefix
+     */
+    private static String extractPhoneFromChangePhoneString(String encoded){
+        final int indexOfPhonePrefix = encoded.indexOf(PERSON_DATA_PREFIX_PHONE);
+        return removePrefixSign(encoded.substring(indexOfPhonePrefix, encoded.length()).trim(),
+                PERSON_DATA_PREFIX_PHONE);
+    }
+
+    /**
+     * Extracts substring representing phone number from change email string representation
+     *
+     * @param encoded change email string representation
+     * @return phone number argument WITHOUT prefix
+     */
+    private static String extractEmailFromChangeEmailString(String encoded){
+        final int indexOfEmailPrefix = encoded.indexOf(PERSON_DATA_PREFIX_EMAIL);
+        return removePrefixSign(encoded.substring(indexOfEmailPrefix, encoded.length()).trim(),
+                PERSON_DATA_PREFIX_EMAIL);
     }
 
     /**
@@ -1088,6 +1210,8 @@ public class AddressBook {
                 + getUsageInfoForDeleteCommand() + LS
                 + getUsageInfoForClearCommand() + LS
                 + getUsageInfoForExitCommand() + LS
+                + getUserInfoForChangePhoneCommand() + LS
+                + getUserInfoForChangeEmailCommand() +LS
                 + getUsageInfoForHelpCommand();
     }
 
@@ -1136,7 +1260,17 @@ public class AddressBook {
                 + String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_EXIT_EXAMPLE);
     }
 
+    private static String getUserInfoForChangePhoneCommand(){
+        return String.format(MESSAGE_COMMAND_HELP, COMMAND_CHANGE_PHONE_WORD, COMMAND_CHANGE_PHONE_DESC) + LS
+                + String.format(MESSAGE_COMMAND_HELP_PARAMETERS, COMMAND_CHANGE_PHONE_PARAMETER) + LS
+                + String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_CHANGE_PHONE_EXAMPLE) + LS;
+    }
 
+    private static String getUserInfoForChangeEmailCommand(){
+        return String.format(MESSAGE_COMMAND_HELP, COMMAND_CHANGE_EMAIL_WORD, COMMAND_CHANGE_EMAIL_DESC) + LS
+                + String.format(MESSAGE_COMMAND_HELP_PARAMETERS, COMMAND_CHANGE_EMAIL_PARAMETER) + LS
+                + String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_CHANGE_EMAIL_EXAMPLE) + LS;
+    }
     /*
      * ============================
      *         UTILITY METHODS
